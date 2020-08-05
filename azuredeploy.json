@@ -1,0 +1,458 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-08-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "IotHubName": {
+            "defaultValue": "[concat('Hub-', take(uniqueString(resourceGroup().id),5))]",
+            "type": "String",
+            "metadata": {
+                "description": "The name of IoT Hub.  Must be globally unique."
+            }
+        },
+        "IotHubSKU": {
+            "defaultValue": "S1",
+            "allowedValues": [
+                "F1",
+                "S1"
+            ],
+            "type": "String",
+            "metadata": {
+                "description": "IoT Hub SKU."
+            }
+        },
+        "IotHubLocation": {
+            "defaultValue": "Central US",
+            "allowedValues": [
+                "Central US",
+                "Japan East",
+                "North Europe"
+            ],
+            "type": "String",
+            "metadata": {
+                "description": "Region"
+            }
+        },
+        "PortalSiteName": {
+            "defaultValue": "[concat('Portal-', take(uniqueString(resourceGroup().id),5))]",
+            "type": "String",
+            "metadata": {
+                "description": "The name of Portal.  Must be globally unique."
+            }
+        },
+        "PortalRepoURL": {
+            "defaultValue": "https://github.com/daisukeiot/Solution-Template-WebApp.git",
+            "type": "String",
+            "metadata": {
+                "description": "The URL for the GitHub repository that contains the project to deploy."
+            }
+        },
+        "PortalRepoBranch": {
+            "defaultValue": "master",
+            "type": "String",
+            "metadata": {
+                "description": "The branch of the GitHub repository to use."
+            }
+        },
+        "FunctionsName": {
+            "defaultValue": "[concat('Functions-', take(uniqueString(resourceGroup().id),5))]",
+            "type": "String",
+            "metadata": {
+                "description": "The name of Azure Functions.  Must be globally unique."
+            }
+        },
+        "HostingPlanName": {
+            "defaultValue": "[concat('HostingPlan-', take(uniqueString(resourceGroup().id),5))]",
+            "type": "String",
+            "metadata": {
+                "description": "The name of Hosting Plan.  Must be globally unique."
+            }
+        },
+        "StorageAccountName": {
+            "defaultValue": "[toLower(concat('stor', take(uniqueString(resourceGroup().id),5)))]",
+            "type": "String",
+            "metadata": {
+                "description": "The name of Storage Account.  Must be globally unique."
+            }
+        },
+        "FunctionRepoURL": {
+            "defaultValue": "https://github.com/daisukeiot/Solution-Template-Functions.git",
+            "type": "String",
+            "metadata": {
+                "description": "The URL for the GitHub repository that contains the project to deploy."
+            }
+        },
+        "FunctionRepoBranch": {
+            "defaultValue": "master",
+            "type": "String",
+            "metadata": {
+                "description": "The branch of the GitHub repository to use."
+            }
+        },
+        "SignalrName": {
+            "defaultValue": "[concat('SignalR-', take(uniqueString(resourceGroup().id),5))]",
+            "type": "String",
+            "metadata": {
+                "description": "The name of SignalR.  Must be globally unique."
+            }
+        }
+    },
+    "variables": {
+        "consumerGroupName": "[concat(parameters('IotHubName'), '/events/telemetry-cg')]",
+        "IotHubSKU": {
+            "F1": {
+                "SkuName": "F1",
+                "partitionCount": 2
+            },
+            "S1": {
+                "SkuName": "S1",
+                "partitionCount": 4
+            }
+        },
+        "iotHubLocation": "[parameters('IotHubLocation')]",
+        "iotHubName": "[parameters('IotHubName')]",
+        "iotHubPolicyName": "iothubowner",
+        "iotHubEventGridTopic": "EventGridIoTHubTopic",
+        "functionAppName": "[parameters('FunctionsName')]",
+        "hostingPlanName": "[parameters('HostingPlanName')]",
+        "storageAccountName": "[parameters('StorageAccountName')]",
+        "signalrName": "[parameters('SignalrName')]",
+        "portalSiteName": "[parameters('PortalSiteName')]"
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Devices/IotHubs",
+            "apiVersion": "2020-03-01",
+            "name": "[variables('iotHubName')]",
+            "location": "[variables('iotHubLocation')]",
+            "tags": {
+                "ENV": "P15"
+            },
+            "sku": {
+                "name": "[variables('IotHubSKU')[parameters('IotHubSKU')].SkuName]",
+                "tier": "Standard",
+                "capacity": 1
+            },
+            "identity": {
+                "type": "None"
+            },
+            "properties": {
+                "ipFilterRules": [],
+                "eventHubEndpoints": {
+                    "events": {
+                        "retentionTimeInDays": 1,
+                        "partitionCount": "[variables('IotHubSKU')[parameters('IotHubSKU')].partitionCount]"
+                    }
+                },
+                "routing": {
+                    "endpoints": {
+                        "serviceBusQueues": [],
+                        "serviceBusTopics": [],
+                        "eventHubs": [],
+                        "storageContainers": []
+                    },
+                    "routes": [
+                        {
+                            "name": "DeviceLifecycleRoute",
+                            "source": "DeviceLifecycleEvents",
+                            "condition": "true",
+                            "endpointNames": [
+                                "events"
+                            ],
+                            "isEnabled": true
+                        },
+                        {
+                            "name": "DeviceTwinChangeRoute",
+                            "source": "TwinChangeEvents",
+                            "condition": "true",
+                            "endpointNames": [
+                                "events"
+                            ],
+                            "isEnabled": true
+                        },
+                        {
+                            "name": "DigitalTwinChangeRoute",
+                            "source": "DigitalTwinChangeEvents",
+                            "condition": "true",
+                            "endpointNames": [
+                                "events"
+                            ],
+                            "isEnabled": true
+                        }
+                    ],
+                    "fallbackRoute": {
+                        "name": "$fallback",
+                        "source": "DeviceMessages",
+                        "condition": "true",
+                        "endpointNames": [
+                            "events"
+                        ],
+                        "isEnabled": true
+                    }
+                },
+                "messagingEndpoints": {
+                    "fileNotifications": {
+                        "lockDurationAsIso8601": "PT1M",
+                        "ttlAsIso8601": "PT1H",
+                        "maxDeliveryCount": 10
+                    }
+                },
+                "enableFileUploadNotifications": false,
+                "cloudToDevice": {
+                    "maxDeliveryCount": 10,
+                    "defaultTtlAsIso8601": "PT1H",
+                    "feedback": {
+                        "lockDurationAsIso8601": "PT1M",
+                        "ttlAsIso8601": "PT1H",
+                        "maxDeliveryCount": 10
+                    }
+                },
+                "features": "None"
+            }
+        },
+        {
+            "type": "Microsoft.Devices/iotHubs/eventhubEndpoints/ConsumerGroups",
+            "apiVersion": "2018-04-01",
+            "name": "[variables('consumerGroupName')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Devices/IotHubs', variables('iotHubName'))]"
+            ]
+        },
+        {
+            "type": "Microsoft.EventGrid/systemTopics",
+            "apiVersion": "2020-04-01-preview",
+            "name": "[variables('iotHubEventGridTopic')]",
+            "location": "[variables('iotHubLocation')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Devices/IotHubs', variables('iotHubName'))]"
+            ],
+            "tags": {
+                "ENV": "P15"
+            },
+            "properties": {
+                "source": "[resourceId('Microsoft.Devices/IotHubs', variables('iotHubName'))]",
+                "topicType": "Microsoft.Devices.IoTHubs"
+            }
+        },
+        {
+            "type": "Microsoft.Storage/storageAccounts",
+            "apiVersion": "2019-06-01",
+            "name": "[variables('storageAccountName')]",
+            "location": "[variables('iotHubLocation')]",
+            "tags": {
+                "ENV": "P15"
+            },
+            "sku": {
+                "name": "Standard_LRS",
+                "tier": "Standard"
+            },
+            "kind": "Storage"
+        },
+        {
+            "type": "Microsoft.Web/serverfarms",
+            "apiVersion": "2019-08-01",
+            "name": "[variables('hostingPlanName')]",
+            "location": "[variables('iotHubLocation')]",
+            "tags": {
+                "ENV": "P15"
+            },
+            "sku": {
+                "name": "S1",
+                "capacity": 0
+            },
+            "kind": "app",
+            "properties": {
+                "name": "[variables('hostingPlanName')]"
+            }
+        },
+        {
+            "type": "Microsoft.Web/sites",
+            "apiVersion": "2018-11-01",
+            "name": "[variables('functionAppName')]",
+            "location": "[variables('iotHubLocation')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Devices/IotHubs', variables('iotHubName'))]",
+                "[resourceId('Microsoft.Web/serverfarms', variables('hostingPlanName'))]",
+                "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]",
+                "[resourceId('Microsoft.SignalRService/SignalR', variables('signalrName'))]"
+            ],
+            "tags": {
+                "ENV": "P15"
+            },
+            "kind": "functionapp",
+            "properties": {
+                "name": "[variables('functionAppName')]",
+                "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', variables('hostingPlanName'))]",
+                "clientAffinityEnabled": false,
+                "siteConfig": {
+                    "cors": {
+                        "allowedOrigins": [
+                            "*"
+                        ]
+                    },
+                    "appSettings": [
+                        {
+                            "name": "FUNCTIONS_EXTENSION_VERSION",
+                            "value": "~3"
+                        },
+                        {
+                            "name": "AzureWebJobsStorage",
+                            "value": "[concat('DefaultEndpointsProtocol=https;AccountName=',variables('storageAccountName'),';AccountKey=',listkeys(resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName')), '2019-06-01').keys[0].value,';')]"
+                        },
+                        {
+                            "name": "AzureWebJobsDashboard",
+                            "value": "[concat('DefaultEndpointsProtocol=https;AccountName=',variables('storageAccountName'),';AccountKey=',listkeys(resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName')), '2019-06-01').keys[0].value,';')]"
+                        },
+                        {
+                            "name": "EVENTHUB_CS",
+                            "value": "[concat('Endpoint=', reference(resourceId('Microsoft.Devices/IoTHubs', variables('iotHubName')), providers('Microsoft.Devices', 'IoTHubs').apiVersions[0]).eventHubEndpoints.events.endpoint, ';SharedAccessKeyName=iothubowner;SharedAccessKey=', listKeys(resourceId('Microsoft.Devices/IotHubs', variables('iotHubName')), providers('Microsoft.Devices', 'IoTHubs').apiVersions[0]).value[0].primaryKey, ';EntityPath=', reference(resourceId('Microsoft.Devices/IoTHubs', variables('iotHubName')), providers('Microsoft.Devices', 'IoTHubs').apiVersions[0]).eventHubEndpoints.events.path)]"
+                        },
+                        {
+                            "name": "AzureSignalRConnectionString",
+                            "value": "[concat('Endpoint=https://', toLower(variables('signalrName')), '.service.signalr.net;AccessKey=', listKeys(variables('signalrName'), providers('Microsoft.SignalRService', 'SignalR').apiVersions[0]).primaryKey)]"
+                        }
+                    ]
+                }
+            },
+            "resources": [
+                {
+                    "type": "sourcecontrols",
+                    "apiVersion": "2018-11-01",
+                    "name": "web",
+                    "dependsOn": [
+                        "[resourceId('Microsoft.Web/Sites', variables('functionAppName'))]"
+                    ],
+                    "properties": {
+                        "RepoUrl": "[parameters('FunctionRepoURL')]",
+                        "branch": "[parameters('FunctionRepoBranch')]",
+                        "IsManualIntegration": true
+                    }
+                }
+            ]
+        },
+        {
+            "type": "Microsoft.SignalRService/SignalR",
+            "apiVersion": "2020-05-01",
+            "name": "[variables('signalrName')]",
+            "location": "[variables('iotHubLocation')]",
+            "tags": {
+                "ENV": "P15"
+            },
+            "sku": {
+                "name": "Standard_S1",
+                "tier": "Standard",
+                "size": "S1",
+                "capacity": 1
+            },
+            "kind": "SignalR",
+            "properties": {
+                "features": [
+                    {
+                        "flag": "ServiceMode",
+                        "value": "Classic",
+                        "properties": {}
+                    }
+                ],
+                "cors": {
+                    "allowedOrigins": [
+                        "*"
+                    ]
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Web/sites",
+            "apiVersion": "2015-08-01",
+            "name": "[variables('portalSiteName')]",
+            "location": "[variables('iotHubLocation')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Web/serverfarms', variables('hostingPlanName'))]"
+            ],
+            "tags": {
+                "ENV": "P15"
+            },
+            "properties": {
+                "serverFarmId": "[parameters('hostingPlanName')]",
+                "siteConfig": {
+                    "webSocketsEnabled": true,
+                    "appSettings": [
+                        {
+                            "name": "Azure__SignalR__ConnectionString",
+                            "value": "[concat('Endpoint=https://', toLower(variables('signalrName')), '.service.signalr.net;AccessKey=', listKeys(variables('signalrName'), providers('Microsoft.SignalRService', 'SignalR').apiVersions[0]).primaryKey)]"
+                        }
+                    ]
+                }
+            },
+            "resources": [
+                {
+                    "type": "sourcecontrols",
+                    "apiVersion": "2015-08-01",
+                    "name": "web",
+                    "dependsOn": [
+                        "[resourceId('Microsoft.Web/Sites', variables('portalSiteName'))]"
+                    ],
+                    "properties": {
+                        "RepoUrl": "[parameters('PortalRepoURL')]",
+                        "branch": "[parameters('PortalRepoBranch')]",
+                        "IsManualIntegration": true
+                    }
+                }
+            ]
+        },
+        {
+            "type": "Microsoft.EventGrid/systemTopics/eventSubscriptions",
+            "apiVersion": "2020-04-01-preview",
+            "name": "[concat(variables('iotHubEventGridTopic'), '/PortalIoTHubEventSubscription')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.EventGrid/systemTopics', variables('iotHubEventGridTopic'))]",
+                "[resourceId('Microsoft.Web/Sites', variables('portalSiteName'))]",
+                "[resourceId('Microsoft.Web/Sites/sourcecontrols/', variables('portalSiteName'),'web')]"
+            ],
+            "properties": {
+                "destination": {
+                    "properties": {
+                        "maxEventsPerBatch": 1,
+                        "preferredBatchSizeInKilobytes": 64,
+                        "endpointUrl": "[concat('https://',  variables('portalSiteName'),'.azurewebsites.net/api/eventgrid')]"
+                    },
+                    "endpointType": "WebHook"
+                },
+                "filter": {
+                    "includedEventTypes": [
+                        "Microsoft.Devices.DeviceCreated",
+                        "Microsoft.Devices.DeviceDeleted",
+                        "Microsoft.Devices.DeviceConnected",
+                        "Microsoft.Devices.DeviceDisconnected"
+                    ]
+                },
+                "labels": [],
+                "eventDeliverySchema": "EventGridSchema",
+                "retryPolicy": {
+                    "maxDeliveryAttempts": 30,
+                    "eventTimeToLiveInMinutes": 1440
+                }
+            }
+        }
+    ],
+    "outputs": {
+        "_Web_Site_Address": {
+            "type": "String",
+            "value": "[concat('https://',  variables('portalSiteName'),'.azurewebsites.net/')]"
+        },
+        "_IoT_Hub_Name": {
+            "type": "String",
+            "value": "[variables('iotHubName')]"
+        },
+        "_Function_App_Name": {
+            "type": "String",
+            "value": "[variables('functionAppName')]"
+        },
+        "_Storage_Account_Name": {
+            "type": "String",
+            "value": "[variables('storageAccountName')]"
+        },
+        "_SignalR_Name": {
+            "type": "String",
+            "value": "[variables('signalrName')]"
+        }
+    }
+}

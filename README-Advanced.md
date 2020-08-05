@@ -6,20 +6,26 @@ If you do not have Azure Account, please obtain one for free at <https://azure.m
 
 ![SignUp](media/AzureSignUp.png)
 
-## Deploy in Simple Template
+## Deploy in Advanced Template
 
-Azure Resource Manager (ARM) template with minimum user inputs.  If you prefer more control, please refer to [Advanced Deployment Template](README-Advanced.md).
+Azure Resource Manager (ARM) template with more user input options.
+
+- During the deployment, user may choose resource names of their choice.
+- Specify Github repositories and branches for Web App and Functions App
+- Specify IoT Hub SKU
+
+If you prefer more control, please refer to [Simple Deployment Template](README.md)
 
 1. Click `Deploy to Azure` button below  
 
     > [!TIP]  
     > Right click the button below and select `Open link in new tab` or `Open lin in new window`
 
-    <a href="https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fdaisukeiot%2FARMTest%2Fmaster%2Fazuredeploy.json" target="_blank"><img src="deploy-to-azure.svg"/></a>
+    <a href="https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fdaisukeiot%2FARMTest%2Fmaster%2Fauzredeploy-advanced.json" target="_blank"><img src="deploy-to-azure.svg"/></a>
 
-1. Select or create Resource Group  
+1. Select or create Resource Group, and provide resource names
 
-    ![Azure Portal 01](media/Portal01.png)
+    ![Azure Portal 13](media/Portal13.png)
 
 1. Select `Region` and `IoT Hub Location`  
 
