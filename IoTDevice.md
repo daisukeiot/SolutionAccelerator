@@ -2,7 +2,28 @@
 
 The sample portal site is ready to accept data.  In order to send data to the sample portal through IoT Hub, we need to create a new device.
 
-## Adding a new device
+## Adding a new IoT device
+
+1. Click `+ Add Device`
+
+    ![Web App 04](media/WebApp04.png)
+
+1. Type a new device ID, then click `+ Add Device` to create a new IoT Device in your IoT Hub
+
+    E.g. Adding `TestDevice1`
+
+    ![Web App 05](media/WebApp05.png)
+
+1. Verify the Web App receives 2 messages
+
+    - 1 x `Microsoft.Devices.DeviceCreated` event from Event Grid
+    - 1 x `deviceLifecycleEvents` from Event Hubs 
+
+    ![Web App 06](media/WebApp06.png)
+
+1. The web app should receive Telemetry Events
+
+## Adding a new IoT device in Azure Portal
 
 1. Go back to `Overview` then click `Go to resource group`
 
@@ -15,22 +36,22 @@ The sample portal site is ready to accept data.  In order to send data to the sa
 
     ![Azure Portal 08](media/Portal08.png)
 
-1. Browse to `IoT devices` page by selecting `IoT devices` from the left menu, then click `+ New` to create a new IoT Device
+1. Select `IoT Device` from menu, then click `+ New`
 
-    ![Azure Portal 09](media/Portal09.png)
+   ![Azure Portal 09](media/Portal09.png)
 
 1. Name a new device then click `Save` to create a new IoT device.
 
-    ![Azure Portal 10](media/Portal10.png)
-
+   ![Azure Portal 10](media/Portal10.png)
+ 
 ## Receiving device events
 
-1. When a new IoT device is created in the IoT Hub, IoT Hub publishes a new event.  Confirm you receive the event in The sample portal site.
+When a new IoT device is created in the IoT Hub, IoT Hub publishes a new event.  Confirm you receive the event in The sample portal site.
 
-    ![Web App 02](media/WebApp02.png)
+![Web App 06](media/WebApp06.png)
 
-    > [!TIP]  
-    > You can click on the event to expand to show details
+> [!TIP]  
+> You can click on the event to expand to show details
 
 ## Next Step
 

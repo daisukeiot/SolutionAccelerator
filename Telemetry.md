@@ -4,6 +4,35 @@ The sample portal site is ready to accept data.  Send telemetry data to the samp
 
 If you do not have a real/physical device, you can still send telemetry using a simulator.
 
+## Sending messages from Web Client
+
+For the verification purpose, the web portal app contains device application simulator code to :
+
+- Connect and Disconnect
+- Send a telemetry message
+
+1. Select a device from the list  
+
+    If you do not see any devices in the list, please add one.  ([Instruction](IoTDevice.md))
+
+    ![Web App 07](media/WebApp07.png)
+
+1. Once a device is selected, the web app should populate data under `Device Information`
+
+    ![Web App 08](media/WebApp08.png)
+
+1. Click on `Connect` and `Send a message` to send a message  
+
+    ![Web App 09](media/WebApp09.png)
+
+1. The web app should receive `Connect` and `Disconnect` events, and `Telemetry` messages.
+
+    ![Web App 10](media/WebApp10.png)
+
+    > [!NOTE]  
+    > Telemetry messages should be delivered to the web app with very small latency (up to a few seconds), but events may experience up to 1 min delay.  
+    > These are expected.
+
 ## Raspberry Pi Online Simulator
 
 Raspberry Pi Online Simulator is an online tool you can send simulated temperature and humidity telemetry to IoT Hub.
@@ -12,16 +41,16 @@ Raspberry Pi Online Simulator is an online tool you can send simulated temperatu
 
     ![Simulator 01](media/Simulator01.png)
 
-1. Go back to Azure Portal browser window, then click the new IoT device just created
+1. Go back to the web app, then click on `View Connction String`
+
+    ![Web App 11](media/WebApp11.png)
+
+1. Copy the connection string
 
     > [!TIP]  
-    > If you do not see the device, click `Refresh` button
+    > To copy the connection string, select the connection string (From `HostName` ~ ) with mouse, then `CTRL + C` or right click to display the context menu
 
-    ![Azure Portal 11](media/Portal11.png)
-
-1. Copy `Primary Connection String` in Azure Portal window
-
-    ![Azure Portal 12](media/Portal12.png)
+    ![Web App 12](media/WebApp12.png)
 
 1. Replace line #15 with the connection string
 
@@ -59,5 +88,20 @@ Raspberry Pi Online Simulator is an online tool you can send simulated temperatu
 ## Next Step
 
 Completed!
+
+If you would like to delete all Azure resources, delete the resource group in Azure Portal.
+
+1. Access to [Azure Portal](http://portal.azure.com)
+1. Select `Resource Groups` from the menu
+
+    ![Portal 15](media/Portal15.png)
+
+1. Select the resource group you created [earlier](README.md#deploy-with-arm-template)
+
+    ![Portal 16](media/Portal16.png)
+
+1. Click `Delete resource group` to delete all resources
+
+    ![Portal 17](media/Portal17.png)
 
 - [Project 15 from Microsoft](../README.md)
